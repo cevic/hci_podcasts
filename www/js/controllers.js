@@ -652,38 +652,39 @@ appCtrl.controller('PodcastsListsCtrl', ['$scope', 'AWSService', 'MyService', '$
             $ionicLoading.hide();
         };
         $scope.player = Player;
-        $scope.showLoading();
         /*List the objects and get their header metadata*/
         var bucket = 'hci-media';
-        var objectAndKey = {};
-        var podcasts = [];
-        MyService.listObjects(bucket, 'podcasts/', 'podcasts/').then(function(messages){
-            for (var i=0; i<messages.length; i++){
-                var key = messages[i].Key;
-                var cong = {
-                    Bucket: bucket,
-                    Key: key
-                };
-                (function(i){
-                    MyService.getObjHead(cong).then(function(obj){
-                        if((obj.Metadata.title !== undefined) && (obj.Metadata.title !== '') && (obj.Metadata.title!== null)){
-                            objectAndKey = {
-                                object:obj,
-                                objKey:messages[i].Key
-                            };
-                            podcasts.push(objectAndKey);
-                        }
-                    });
-                })(i);
-            }
+        if(!podcasts){
+            $scope.showLoading();
+            var podcasts = [];
+            var objectAndKey = {};
+            MyService.listObjects(bucket, 'podcasts/', 'podcasts/').then(function(messages){
+                for (var i=0; i<messages.length; i++){
+                    var key = messages[i].Key;
+                    var cong = {
+                        Bucket: bucket,
+                        Key: key
+                    };
+                    (function(i){
+                        MyService.getObjHead(cong).then(function(obj){
+                            if((obj.Metadata.title !== undefined) && (obj.Metadata.title !== '') && (obj.Metadata.title!== null)){
+                                objectAndKey = {
+                                    object:obj,
+                                    objKey:messages[i].Key
+                                };
+                                podcasts.push(objectAndKey);
+                            }
+                        });
+                    })(i);
+                }
 
-        });
+            });
+        }
         var timer = $timeout(function(){
             $scope.messages = $filter('orderBy')(podcasts, 'object.Metadata.date', true);
             $scope.hide();
             $scope.predicate =  'object.Metadata.title';
             console.log("messages ",$scope.messages);
-            console.log("messages ",$scope.orderFor);
         }, 4000);
         //Clean up the timer before we kill this controller
         $scope.$on('$destroy', function() { if (timer) { $timeout.cancel(timer); } });
