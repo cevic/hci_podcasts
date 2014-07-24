@@ -16,6 +16,9 @@
     <preference name="DisallowOverscroll" value="true" />
     <preference name="Orientation" value="portrait" />
 
+    <gap:plugin name="org.apache.cordova.console" version="0.2.7" />
+    <gap:plugin name="org.apache.cordova.device" version="0.2.8" />
+
     <icon src="iphone/appicon-60.png" gap:platform="ios" width="60" height="60" />
     <icon src="iphone/appicon-60@2x.png" gap:platform="ios" width="120" height="120" />
 
