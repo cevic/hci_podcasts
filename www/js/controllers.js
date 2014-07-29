@@ -31,18 +31,11 @@ appCtrl.controller('IntroCtrl', ['$scope', '$state', '$ionicSlideBoxDelegate', '
     });
 }]);
 
-appCtrl.controller('HomeCtrl', ['$scope', '$timeout', '$rootScope', 'Weather', 'Geo', 'Flickr', '$ionicModal', '$ionicPlatform', '$ionicSideMenuDelegate', 'IntroSettings',
-    function($scope, $timeout, $rootScope, Weather, Geo, Flickr, $ionicModal, $ionicPlatform, $ionicSideMenuDelegate,IntroSettings) {
-        $ionicSideMenuDelegate.canDragContent(false)
+appCtrl.controller('HomeCtrl', ['$scope', '$timeout', '$rootScope','Weather','Geo','Flickr','$ionicModal','$ionicPlatform', '$ionicSideMenuDelegate', 'IntroSettings',
+    function($scope, $timeout, $rootScope,Weather, Geo,Flickr,$ionicModal,$ionicPlatform,$ionicSideMenuDelegate,IntroSettings) {
+        $ionicSideMenuDelegate.canDragContent(false);
         var _this = this;
         IntroSettings.delete();
-        $ionicPlatform.ready(function() {
-            // Hide the status bar
-            if(window.StatusBar) {
-                StatusBar.hide();
-            }
-        });
-
         $scope.activeBgImageIndex = 0;
 
         this.getBackgroundImage = function(lat, lng, locString) {
@@ -96,7 +89,7 @@ appCtrl.controller('HomeCtrl', ['$scope', '$timeout', '$rootScope', 'Weather', '
                 });
                 _this.getCurrent(lat, lng);
             }, function(error) {
-                navigator.notification.alert('Unable to get current location: ' + error);
+                navigator.notification.alert('Unable to get current location ');
             });
         };
 
@@ -104,7 +97,6 @@ appCtrl.controller('HomeCtrl', ['$scope', '$timeout', '$rootScope', 'Weather', '
 
 
     }]);
-
 appCtrl.controller('FindUsCtrl', ['$scope', '$ionicLoading', '$ionicActionSheet', '$timeout', '$ionicModal', '$ionicNavBarDelegate', '$location', '$ionicTabsDelegate',
     function($scope, $ionicLoading, $ionicActionSheet, $timeout, $ionicModal, $ionicNavBarDelegate,$location,$ionicTabsDelegate){
         /*Code for email*/
@@ -459,6 +451,360 @@ appCtrl.controller('FindUsCtrl', ['$scope', '$ionicLoading', '$ionicActionSheet'
         ];
     }
 ]);
+
+appCtrl.controller('FindUsCtrl2', ['$scope', '$ionicLoading', '$ionicActionSheet', '$timeout', '$ionicModal', '$ionicNavBarDelegate', '$location', '$ionicTabsDelegate',
+    function($scope, $ionicLoading, $ionicActionSheet, $timeout, $ionicModal, $ionicNavBarDelegate,$location,$ionicTabsDelegate){
+        /*Code for email*/
+        $scope.createEmail = function (){
+            $location.path('/app/send_email')
+        };
+        /*end of code for email*/
+        $scope.setNavTitle = function(title) {
+            $ionicNavBarDelegate.setTitle(title);
+        };
+        $scope.storeTab = function(tab_number){
+
+            // Needed to switch the view when clicking on a tab
+            $ionicTabsDelegate.select(tab_number);
+
+            //Set the Nav bar titile
+            if(tab_number == 0){
+                $scope.setNavTitle("Activities")
+            } else if(tab_number == 2) {
+                $scope.showEndChoices();
+                $scope.setNavTitle("Directions")
+            }
+
+        };
+        /*Code for map/directions*/
+        $scope.mapCanvas = true; //for the map view
+        $scope.controls = false; //for the controls view
+        $scope.close = false;
+        $scope.stepByStep = false;
+        $scope.hideSteps = false;
+        $scope.closeMap = function(){ //for closing the map view
+            $scope.mapCanvas = true; //for the map view
+            $scope.close = false;
+            $scope.stepByStep = false;
+            $scope.hideSteps = false;
+            $scope.controls = false;
+        };
+        $scope.destinationOptions = { // the various destination options for Fridays saturdays and sundays
+            friAndSat:"Ng9 1ae",
+            sunday: "NG9 1GL"
+        };
+
+        //render step-by-step directions
+        $scope.showDirections = function(){
+            $scope.mapCanvas = false; //for the map view
+            $scope.stepByStep = false;
+            $scope.hideSteps = true;
+        };
+        $scope.hideDirections = function(){
+            $scope.mapCanvas = true; //for the map view
+            $scope.hideSteps = false;
+            $scope.stepByStep = true;
+        };
+
+        $scope.showEndChoices = function() { // the modal for choosing destination
+            // Show the action sheet
+            var actionSheet = $ionicActionSheet.show({
+                buttons: [
+                    { text: 'Fridays and Saturdays' },
+                    { text: 'Sundays' }
+                ],
+                titleText: 'Choose a destination',
+                cancelText: 'Cancel',
+                buttonClicked: function(index) {
+                    if(index === 0){
+
+                        $scope.close = true;
+                        $scope.chooseDestination($scope.destinationOptions.friAndSat);
+                    }else if(index === 1){
+
+                        $scope.close = true;
+                        $scope.chooseDestination($scope.destinationOptions.sunday);
+                    }
+                    return true
+                }
+            });
+        };
+
+        function mapDisplayCtrl (){
+            $scope.mapCanvas = true; // now show the map
+            $scope.close = true;
+            $scope.stepByStep = true;
+
+        }
+        $scope.chooseDestination = function(end){ // set destinations
+            if($scope.destination !== end){
+                $scope.end = end
+                $scope.getDirection()
+            } else {
+                mapDisplayCtrl()// now show the map
+            }
+        };
+        var markerArray = [];
+        $scope.getDirection = function () {
+            mapDisplayCtrl();
+            $scope.showLoading();
+            /*set the controls to the bottom of the map*/
+            var control = document.getElementById("control"),
+                map,
+                directionsDisplay,
+                directionService;
+            function initialize() {
+                $scope.userLocation = "";
+                //instantiate Directions service
+                directionService = new google.maps.DirectionsService();
+
+                /*Create a map and center it on Nottingham*/
+                var nottingham = new google.maps.LatLng(-34.397, 150.644),
+                    mapOptions = {
+                        center: nottingham,
+                        zoom: 16,
+                        panControl: false,
+                        zoomControl: false,
+                        mapTypeControl: false,
+                        streetViewControl: false
+                    },
+                    geocoder = new google.maps.Geocoder();
+                map = new google.maps.Map(document.getElementById("map-canvas"), mapOptions);
+
+                directionsDisplay = new google.maps.DirectionsRenderer({
+                    map: map,
+                    draggable: true
+                });
+
+                directionsDisplay.setMap(map); // set the map and bind any changes
+                // Stop the side bar from dragging when mousedown/tapdown on the map
+                $scope.domListener1 = google.maps.event.addDomListener(document.getElementById('map-canvas'), 'mousedown', function (e) {
+                    e.preventDefault();
+                    return false;
+                });
+                $scope.map = map;
+                /*place the controls*/
+                control.style.display = "inline-block";
+                map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(control);
+                $scope.stepDisplay = new google.maps.InfoWindow();
+
+                // Try HTML5 Geolocation to get user's location.
+                // first find the users location
+                if (navigator.geolocation){
+                    $scope.locationId = navigator.geolocation.watchPosition(function (position) {
+                        var pos = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+                        $scope.$apply(function (){
+                            $scope.userLocation= pos;
+                        });
+                        $scope.setDirection("DRIVING");
+
+                        // use reverse geocoding to find the users human readable address
+                        geocoder.geocode({latLng: pos},
+                            function  (result, status) {
+                                if (status === google.maps.GeocoderStatus.OK){
+                                    if (result[1]){
+                                        map.setZoom(18);
+                                        map.setCenter(pos);
+                                        $scope.hideLoading()
+                                    }
+                                } else {
+                                    function error () {
+                                        if (status === "OVER_QUERY_LIMIT"){
+                                            var errorMessage = "Error. Try again in 5 mins"
+                                        } else {errorMessage = "Error due to: " + status}
+                                        navigator.notification.alert(errorMessage, null, "Error!");
+                                        $scope.hideLoading();
+                                    }
+                                    error()
+                                    $scope.closeMap();
+                                }
+                            }); //End of reverse coding
+
+                    }, function(){
+                        handleNoGeolocation(true);
+                    });
+                } else {handleNoGeolocation(false)}//if browser does not support geolocation
+                //end of geocoder
+
+                $scope.listner1 = google.maps.event.addListener(directionsDisplay, 'directions_changed', function(){
+                    $scope.deleteMarkers ();
+                    $scope.controls = true;
+                    showSteps(directionsDisplay.directions);
+                    try{
+                        if (directionsDisplay.directions.routes[0].legs[0]) {
+                            $scope.$apply(function () {
+                                $scope.userLocation = directionsDisplay.directions.routes[0].legs[0].start_address;
+                            });
+                        }
+                    } catch (e) { }
+                    computeTotalDistance(directionsDisplay.getDirections());
+                });
+            }
+
+            $scope.setDirection = function (transMod) {
+                // First, remove any existing markers from the map.
+                $scope.deleteMarkers();// First, clear out any existing markerArray from previous calculations.
+                $scope.destination = $scope.end
+                var start = $scope.userLocation,
+                    selectedMode = transMod || 'DRIVING',
+                    request = {
+                        origin: start,
+                        destination: $scope.destination,
+                        travelMode: selectedMode,
+                        provideRouteAlternatives: true,
+                        unitSystem: google.maps.UnitSystem.METRIC,
+                        optimizeWaypoints: true
+                    };
+                if (selectedMode === 'TRANSIT') {
+                    request.transitOptions = {
+                        departureTime: new Date()
+                    };
+                }
+
+                /*resize the map*/
+                $scope.ele = document.querySelector("#map-canvas")
+                $scope.$watch('ele', function(){
+                    window.setTimeout(function(){
+                        google.maps.event.trigger(map, 'resize');
+                    }, 100)
+                })
+
+                // Retrieve the start and end locations and create a DirectionsRequest
+                directionService.route(request, function(response, status){
+                    if (status == google.maps.DirectionsStatus.OK){
+                        var warnings = document.getElementById ("warnings_panel");
+                        warnings.innerHTML = '<b>' + response.routes[0].warnings + '</b>';
+                        directionsDisplay.setDirections(response);
+                        //showSteps(response); // !! I found that this calling this function here saves the markers permanently.
+                    }
+                });
+
+                directionsDisplay.setPanel(document.getElementById("directions-panel")); //set the step by step directions on to a div
+            }
+
+            // watch if the mode has changed
+            $scope.$watch('selectedOption', function (newValue, oldValue) { $scope.setDirection(); });
+
+            function showSteps (directionResult){
+                // For each step, place a marker, and add the text to the marker's
+                // info window. Also attach the marker to an array so we
+                // can keep track of it and remove it when calculating new
+                // routes.
+                var myRoute = directionResult.routes[0].legs[0];
+
+                for (var i = 0; i < myRoute.steps.length; i++) {
+                    var marker = new google.maps.Marker ({
+                        position: myRoute.steps[i].start_location,
+                        map: map
+                    });
+                    attachInstructionText(marker, myRoute.steps[i].instructions);
+                    markerArray[i] = marker;
+                }
+            }
+
+            function attachInstructionText(marker, text){
+                $scope.listner2 = google.maps.event.addListener
+                (marker, 'click', function(){
+                    $scope.stepDisplay.setContent(text);
+                    $scope.stepDisplay.open(map, marker);
+                });
+            }
+
+            function computeTotalDistance (result) {
+                var total = 0;
+                var mydist = result.routes[0];
+                for (var i = 0; i < mydist.legs.length; i++) {
+                    total += mydist.legs[0].distance.value;
+                };
+                total = total/1000;
+                $scope.$apply(function (){
+                    $scope.totalkm = Math.round(total)+"km";
+                });
+            }
+            $scope.domListener2 = google.maps.event.addDomListener(window, 'load', initialize());
+
+        };
+        $scope.stopWatching = function (){
+            navigator.geolocation.clearWatch($scope.locationId)
+        };
+        // Sets the map on all markers in the array.
+        function setAllMap (map) {
+            for (var i = 0; i < markerArray.length; i++){
+                markerArray[i].setMap(map);
+            }
+        }
+        // Removes the markers from the map, but keeps them in the array.
+        function clearMarkers() {
+            setAllMap(null);
+        }
+        $scope.deleteMarkers = function  (){
+            clearMarkers();
+            markerArray = [];
+        };
+
+        // handleNoGeolocation Error
+        function handleNoGeolocation(errorFlag) {
+            if (errorFlag) {
+                var content = 'Error: The Geolocation service failed.';
+            } else {
+                var content = 'Error: Your browser doesn\'t support geolocation.';
+            }
+
+            var options = {
+                map: map,
+                position: new google.maps.LatLng(60, 105),
+                content: content
+            };
+
+            var infowindow = new google.maps.InfoWindow(options);
+            map.setCenter(options.position);
+        }
+
+        function iosLoading (){
+            $scope.showLoading = function () {
+                steroids.view.displayLoading();
+            };
+            $scope.hideLoading = function(){
+                steroids.view.removeLoading();
+            }
+        }
+        function othersLoading(){
+            $scope.showLoading = function () {
+                $scope.show = $ionicLoading.show({
+                    content: 'Getting current location...',
+                    showBackdrop: false
+                })
+            };
+            $scope.hideLoading = function(){
+                $ionicLoading.hide();
+            }
+        }
+        ionic.Platform.ready(function(){
+            var device = ionic.Platform.device()
+            if (device.platform === "iOS"){
+                iosLoading()
+            } else {
+                othersLoading()
+            }
+        })
+        /*end of code for map/directions*/
+        $scope.$on('$destroy', function(){
+            $scope.stopWatching();
+            google.maps.event.removeListener($scope.listner1)
+            google.maps.event.removeListener($scope.listner2)
+            google.maps.event.removeListener($scope.domListener1)
+            google.maps.event.removeListener($scope.domListener2)
+
+        })
+
+        /*Activities model*/
+        $scope.activities = [
+            {day: 'Friday', title: 'Details Bible study and discusion of the Word of God.', time: '6:30pm - 8:30pm', venue: 'Beston Girls Guide, Nottingham, NG9 1AE'},
+            {day: 'Saturday', title: 'Ministry Meetings ', time: '11:00am - 1:00pm', venue: 'Beston Girls Guide, Nottingham, NG9 1AE'},
+            {day: 'Sunday', title: 'Worship ', time: '5:00pm - 7:30pm', venue: '25 Forster Avenue, Nottingham, NG9 1GL'}
+        ];
+    }
+]);
 appCtrl.controller('SendEmailCtrl', ['$scope', '$timeout', 'FIREBASE_URL', '$firebase', 'ContactMessages', '$location',
     function($scope, $timeout,FIREBASE_URL, $firebase, ContactMessages, $location) {
         var messageId = Math.floor(Math.random() * 5000001);
@@ -554,18 +900,32 @@ appCtrl.controller('WordForTodayCtrl', ['$scope', 'HomeCards', '$location', '$ti
     function($scope, HomeCards, $location, $timeout) {
         //$scope.cards = { title: 'Swipe down to clear the card', image: 'img/pic.png' }
         $scope.word1 = false;
-        var home = HomeCards.getData().then(function(data){
-            $scope.word = data.results
-            $timeout(function(){
-                if($scope.word) {
-                    $scope.word1 = true;
-                }
-            }, 300);
-            console.log("data is ", data.results.discussion)
-        });
+        function checkWord (){
+            if($scope.word) {
+                $scope.word1 = true;
+            }
+            $timeout.cancel(timer)
+        }
+        var timer
+        if (!sessionStorage.word42day){
+            HomeCards.getData().then(function(data){
+                $scope.word = (sessionStorage.word42today) ? sessionStorage.word42today : data.results
+                timer = $timeout(checkWord, 300);
+                console.log("data is ", data.results.discussion)
+            });
+        } else {
+            var word42day =
+            $scope.word = angular.fromJson(sessionStorage.word42day).results
+            timer = $timeout(checkWord);
+        }
+
         $scope.readMore = function () {
             $location.path('app/word_for_today_full')
         }
+
+        $scope.$on('$destroy', function(){
+            $timeout.cancel(timer)
+        })
 
     }]);
 
@@ -639,9 +999,10 @@ appCtrl.controller("PhotoGalCtrl", ["$rootScope", "$scope", "$timeout", "$interv
 
     }])
 
-appCtrl.controller('PodcastsListsCtrl', ['$scope', 'AWSService', 'MyService', '$timeout', '$ionicLoading', '$filter', 'PodService', 'Player',
-    function($scope, AWSService, MyService, $timeout, $ionicLoading, $filter, PodService, Player){
+appCtrl.controller('PodcastsListsCtrl', ['$scope', 'PodLists', 'AWSService', 'MyService', '$timeout', '$ionicLoading', '$filter', 'PodService', 'Player',
+    function($scope, PodLists, AWSService, MyService, $timeout, $ionicLoading, $filter, PodService, Player){
         /*set the funcion for showing and hiding loading screen*/
+        var podcasts;
         $scope.showLoading = function () {
             $scope.show = $ionicLoading.show({
                 content: 'Getting Messages...',
@@ -654,40 +1015,44 @@ appCtrl.controller('PodcastsListsCtrl', ['$scope', 'AWSService', 'MyService', '$
         $scope.player = Player;
         /*List the objects and get their header metadata*/
         var bucket = 'hci-media';
-        if(!podcasts){
-            $scope.showLoading();
-            var podcasts = [];
-            var objectAndKey = {};
-            MyService.listObjects(bucket, 'podcasts/', 'podcasts/').then(function(messages){
-                for (var i=0; i<messages.length; i++){
-                    var key = messages[i].Key;
-                    var cong = {
-                        Bucket: bucket,
-                        Key: key
-                    };
-                    (function(i){
-                        MyService.getObjHead(cong).then(function(obj){
-                            if((obj.Metadata.title !== undefined) && (obj.Metadata.title !== '') && (obj.Metadata.title!== null)){
-                                objectAndKey = {
-                                    object:obj,
-                                    objKey:messages[i].Key
-                                };
-                                podcasts.push(objectAndKey);
-                            }
-                        });
-                    })(i);
-                }
+           $scope.showLoading();
+        $scope.getMessages = function(){
+            PodLists.pods().then(function(obj){
+                podcasts = obj;
+                $scope.messages = $filter('orderBy')(podcasts, 'object.Metadata.date', true);
+                sessionStorage.podsArray = angular.toJson($scope.messages);
+                $scope.hide();
+                $scope.predicate =  'object.Metadata.title';
+                //console.log("messages ",$scope.messages);
+            }, function(error){
+                navigator.notification.alert('Unable to messages', null, "Error");
+                console.log("dondi error is ", error)
+            }, function(percentComplete){
+                console.log("dondi completes in ", percentComplete)
+            }).finally(function() {
+                    // Stop the ion-refresher from spinning
+                    $scope.$broadcast('scroll.refreshComplete');
+                });
+        };
 
-            });
+        if(!sessionStorage.podsArray){
+            $timeout(function(){
+                $scope.getMessages();
+            })
+        } else if(sessionStorage.podsArray){
+            if(angular.fromJson(sessionStorage.podsArray).length < 1){
+                $timeout(function(){
+                    $scope.getMessages();
+                })
+            } else {
+                podcasts = angular.fromJson(sessionStorage.podsArray)
+                $scope.messages = $filter('orderBy')(podcasts, 'object.Metadata.date', true);
+                $scope.hide();
+            }
+
         }
-        var timer = $timeout(function(){
-            $scope.messages = $filter('orderBy')(podcasts, 'object.Metadata.date', true);
-            $scope.hide();
-            $scope.predicate =  'object.Metadata.title';
-            console.log("messages ",$scope.messages);
-        }, 4000);
         //Clean up the timer before we kill this controller
-        $scope.$on('$destroy', function() { if (timer) { $timeout.cancel(timer); } });
+        $scope.$on('$destroy', function() { $timeout.cancel()} );
         $scope.playerControl = false;
         $scope.play = function(key, title) {
             var src = 'https://s3-eu-west-1.amazonaws.com/'+bucket+'/'+key;
@@ -700,8 +1065,8 @@ appCtrl.controller('PodcastsListsCtrl', ['$scope', 'AWSService', 'MyService', '$
 
     }]);
 
-appCtrl.controller('PodcastsDetailCtrl', ['$scope', '$stateParams', '$filter', 'MyService', '$timeout', '$ionicLoading', 'PodService', 'Player',
-    function($scope, $stateParams, $filter, MyService, $timeout, $ionicLoading, PodService, Player){
+appCtrl.controller('PodcastsDetailCtrl', ['$scope', '$cacheFactory', '$stateParams', '$filter', 'MyService', '$timeout', '$ionicLoading', 'PodService', 'Player',
+    function($scope, $cacheFactory, $stateParams, $filter, MyService, $timeout, $ionicLoading, PodService, Player){
         /*set the defaults*/
         //$scope.imageSrc =PodService.getPic()//'http://placehold.it/350x150';
         $scope.imageSrc = null;
@@ -732,13 +1097,13 @@ appCtrl.controller('PodcastsDetailCtrl', ['$scope', '$stateParams', '$filter', '
                         Key: key
                     };
                 MyService.getObjHead(params).then(function(obj){
-                    $scope.podcast = obj;
+                   $scope.podcast = obj;
                 });
                 $scope.messageSrc = 'https://s3-eu-west-1.amazonaws.com/'+bucket+'/'+key;
                 $scope.hide();
             }
-            var timer = $timeout(getMessage, 400)
+            var timer = $timeout(getMessage)
             //Clean up the timer before we kill this controller
             $scope.$on('$destroy', function() { if (timer) { $timeout.cancel(timer); } });
-        })
+        });
     }])

@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget id="com.cevicapps.hciApp" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+    <preference name="loglevel" value="DEBUG" />
+    <preference name="AndroidLaunchMode" value="singleTop" />
+    <feature name="App">
+        <param name="android-package" value="org.apache.cordova.App" />
+    </feature>
+    <name>HCI Notts</name>
+    <description>
+        A fantastic app for HCI Nottingham. With podcasts and Messages
+    </description>
+    <author email="victor.udeozor@cevicapps.co.uk" href="http://cevicapps.co.uk">
+        Cevicapps
+    </author>
+    <content src="index.html" />
+    <gap:platform name="ios" />
+    <access origin="*" />
+    <preference name="fullscreen" value="true" />
+    <preference name="webviewbounce" value="false" />
+    <preference name="UIWebViewBounce" value="false" />
+    <preference name="DisallowOverscroll" value="true" />
+    <preference name="Orientation" value="portrait" />
+    <icon gap:platform="ios" height="60" src="iphone/appicon-60.png" width="60" />
+    <icon gap:platform="ios" height="120" src="iphone/appicon-60@2x.png" width="120" />
+    <icon gap:platform="ios" height="29" src="iphone/appicon-small.png" width="29" />
+    <icon gap:platform="ios" height="58" src="iphone/appicon-small@2x.png" width="58" />
+    <icon gap:platform="ios" height="40" src="iphone/appicon-40.png" width="40" />
+    <icon gap:platform="ios" height="80" src="iphone/appicon-40@2x.png" width="80" />
+    <gap:splash gap:platform="ios" height="480" src="iphone/Default.png" width="320" />
+    <gap:splash gap:platform="ios" height="960" src="iphone/Default@2x.png" width="640" />
+    <gap:splash gap:platform="ios" height="1136" src="iphone/Default-568h@2x.png" width="640" />
+    <feature name="Device">
+        <param name="android-package" value="org.apache.cordova.device.Device" />
+    </feature>
+</widget>

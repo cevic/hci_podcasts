@@ -375,7 +375,100 @@
     });
     appServ.factory('Weather', forecastioWeather);
 
+    appServ.factory('PodLists', ['MyService','$timeout','$rootScope','$cacheFactory','$q','$stateParams',
+        function(MyService, $timeout, $rootScope, $cacheFactory,$q,$stateParams){
+        var pod_Cache = $cacheFactory('podCache'),
+            bucket = 'hci-media',
+            message = {
+                podcasts: [],
+                podcast: {},
+                pods: function(){
+                    var dondi = [],
+                        percentComplete = 0,
+                        d = $q.defer();
+                    MyService.listObjects(bucket, 'podcasts/', 'podcasts/').then(function(messages){
+                        //console.log(messages)
+                        /*for(var i=0; i<messages.length; i++){
+                            var key = messages[i].Key;
+                            var cong = {
+                                Bucket: bucket,
+                                Key: key
+                            };
+                            (function(i){
+                                MyService.getObjHead(cong).then(function(obj){
+                                    if((obj.Metadata.title !== undefined) && (obj.Metadata.title !== '') && (obj.Metadata.title!== null)){
+                                        var objectAndKey = {
+                                            object:obj,
+                                            objKey:messages[i].Key
+                                        };
+                                        //console.log("objectKeys ", objectAndKey)
+                                        dondi.push(objectAndKey);
+                                    }
+                                });
+                            })(i)
 
+                            percentComplete = (i+1)/messages.length * 100;
+                            d.notify(percentComplete);
+                        }
+                         if(i = messages.length - 1){
+                         $timeout(function(){
+                         d.resolve(dondi)
+                         }, 2000)
+                         }*/
+                        angular.forEach(messages, function(value, key) {
+                            //console.log("values ", value)
+                            var messageKey = value.Key;
+                            var cong = {
+                                Bucket: bucket,
+                                Key: messageKey
+                            };
+                            //console.log("config ", cong)
+
+                            MyService.getObjHead(cong).then(function(obj){
+                                if((obj.Metadata.title !== undefined) && (obj.Metadata.title !== '') && (obj.Metadata.title!== null)){
+                                    var objectAndKey = {
+                                        object:obj,
+                                        objKey:value.Key
+                                    };
+                                    //console.log("objectKeys ", objectAndKey)
+                                    dondi.push(objectAndKey);
+                                }
+                            });
+                            percentComplete = (key+1)/messages.length * 100;
+                            d.notify(percentComplete);
+                        });
+
+
+                        if(key = messages.length - 1){
+                            $timeout(function(){
+                                d.resolve(dondi)
+                            }, 2000)
+                        }
+                    });
+                   /* $timeout(function(){
+                        d.resolve(dondi)
+                    }, 2000)*/
+                    return d.promise
+                },
+                podsArray: function(){
+                    var d = $q.defer();
+                    var pCache;
+                    function mess (){
+                        var see = message.pods()
+                        if(!pCache){
+                            var pCache = see;
+                            pod_Cache.put("messagesCache", pCache);
+                        } else {
+                            pCache = pod_Cache.get("messagesCache");
+                        }
+                        d.resolve(pCache);
+                        return d.promise
+                    }
+                    return $timeout(mess);
+                }
+            }
+        return message;
+    }]);
     appServ.service('MyService', ['$q', 'AWSService', '$cacheFactory', function($q, AWSService, $cacheFactory) {
         var self = this,
             params = { },
@@ -404,6 +497,10 @@
                     obj.listObjects(params, function(err, data){
                         var content = data.Contents;
                         d.resolve(content);
+                    }, function(error){
+                        d.reject("Unable to get content");
+                        navigator.notification.alert('Unable to messages', null, "Error");
+                        console.log("listObjects error ", error)
                     });
                 });
                 return d.promise
@@ -412,11 +509,7 @@
                 var d = $q.defer();
                 service.currentUser().then(function(obj) {
                     obj.headObject(paramz, function (err, data) {
-                        var s3Obj = s3Cache.get(JSON.stringify(paramz));
-                        if (!s3Obj) {
-                            var s3Obj = data;
-                            s3Cache.put(JSON.stringify(paramz), s3Obj);
-                        }
+                        var s3Obj = data
                         d.resolve(s3Obj);
                     })
                 });
@@ -426,7 +519,7 @@
         return service
     }]);
 
-    appServ.provider('AWSService', function() {
+    appServ.provider('AWSService', [function() {
         var self = this;
         AWS.config.region = 'eu-west-1';
         /*set defaults*/
@@ -440,20 +533,28 @@
             return self.config = config;
         };
 
-        self.$get = function($q) {
+        self.$get = function($q, $cacheFactory, $cordovaNetwork,$cordovaDialogs) {
             var params = self.config,
-                deferred = $q.defer();
+                deferred = $q.defer(),
+                awsS3Instance = $cacheFactory("awsS3Instance");
             return {
                 awsInstance: function(){
+                    var s3Obj = awsS3Instance.get("awsS3Instance");
                     if(!s3Obj){
-                        var s3Obj = AWS.config.update(params);
+                        var type = $cordovaNetwork.isOnline();
+                        if (type) {
+                            var s3Obj = AWS.config.update(params);
+                            awsS3Instance.put("awsS3Instance", s3Obj)
+                        } else {
+                            $cordovaDialogs.alert("Cannot get messages when offline", null, "Offline!");
+                        }
                     }
                     deferred.resolve(s3Obj);
                     return deferred.promise;
                 }
             }
         }
-    });
+    }]);
 
     appServ.factory('ContactMessages', ['$firebase', 'FIREBASE_URL', function($firebase, FIREBASE_URL){
         var ref = new Firebase(FIREBASE_URL + 'contactMessage/');
@@ -485,7 +586,10 @@
                     apikey: KIMONOLABS
                 }
                 });
-            return(kimonoRequest.then(Success, Error))
+            if (!sessionStorage.word42day){
+                return(kimonoRequest.then(Success, Error))
+                console.log("yes")
+            }
         }
 
         function Error( response ) {
@@ -500,6 +604,7 @@
         }
 
         function Success( response ) {
+            sessionStorage.word42day = angular.toJson(response.data)
             return( response.data );
         }
 

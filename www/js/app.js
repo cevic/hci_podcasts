@@ -6,7 +6,7 @@
 // the 2nd parameter is an array of 'requires'
 // 'starter.controllers' is found in controllers.js
 
-var app = angular.module('hciApp', ['ionic', 'firebase', 'hciApp.controllers', 'hciApp-services',
+var app = angular.module('hciApp', ['ionic', 'firebase', 'ngCordova', 'hciApp.controllers', 'hciApp-services',
     'hciApp-directives', 'hciApp-filters', 'ngAnimate', 'ngTouch', 'angular-gestures']);
 
     var PhoneGapInit = function () {
@@ -39,11 +39,15 @@ var app = angular.module('hciApp', ['ionic', 'firebase', 'hciApp.controllers', '
             return parseInt(v) || '';
         };
     })
-    .run(['$rootScope','$ionicPlatform','IntroSettings','$state','$location', function($rootScope,$ionicPlatform,IntroSettings,$state,$location) {
+    .run(['$rootScope','$ionicPlatform','IntroSettings','$state','$location', '$cordovaSplashscreen', '$cordovaStatusbar',
+            function($rootScope,$ionicPlatform,IntroSettings,$state,$location,$cordovaSplashscreen,$cordovaStatusbar) {
         $ionicPlatform.ready(function() {
-            if(window.StatusBar) {
-                StatusBar.styleDefault();
-            }
+            $cordovaSplashscreen.hide();
+            $cordovaStatusbar.overlaysWebView(true);
+            $cordovaStatusbar.show();
+            /*if(window.StatusBar) {
+                //StatusBar.styleDefault();
+            }*/
         });
         var intro_page_seen = IntroSettings.getSettings();
         $rootScope.$on('$stateChangeStart', function(event, toState, toParams, fromState, fromParams){
