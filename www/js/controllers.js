@@ -6,13 +6,13 @@ var appCtrl = angular.module('hciApp.controllers', []);
 appCtrl.controller('MenuCtrl', ['$scope', function($scope){
 
 }]);
-
-appCtrl.controller('IntroCtrl', ['$scope', '$state', '$ionicSlideBoxDelegate', 'IntroSettings',
-    function($scope, $state, $ionicSlideBoxDelegate,IntroSettings) {
-    IntroSettings.save();
+appCtrl.controller('IntroCtrl', ['$scope', '$state', '$ionicSlideBoxDelegate', 'IntroSettings','$cordovaSplashscreen',
+    function($scope, $state, $ionicSlideBoxDelegate,IntroSettings,$cordovaSplashscreen) {
     // Called to navigate to the main app
+        $cordovaSplashscreen.hide();
     $scope.startApp = function() {
         $state.go('app.home');
+        IntroSettings.save();
     };
     $scope.next = function() {
         $ionicSlideBoxDelegate.next();
@@ -26,16 +26,18 @@ appCtrl.controller('IntroCtrl', ['$scope', '$state', '$ionicSlideBoxDelegate', '
         $scope.slideIndex = index;
     };
     $scope.$on('$routeChangeStart', function(evt, next, curr){
-        $state.go('app.todo')//IntroSettings.getSettings();
+        $state.go('app.todo');
         console.log("next controller is called ", next)
     });
 }]);
+appCtrl.controller('HomeCtrl', ['$scope', '$timeout', '$rootScope','Weather','Geo','Flickr','$ionicModal',
+    '$ionicPlatform','$ionicSideMenuDelegate','$cordovaStatusbar','$cordovaDevice',
+    function($scope, $timeout, $rootScope,Weather, Geo,Flickr,$ionicModal,$ionicPlatform,$ionicSideMenuDelegate,$cordovaSplashscreen) {
 
-appCtrl.controller('HomeCtrl', ['$scope', '$timeout', '$rootScope','Weather','Geo','Flickr','$ionicModal','$ionicPlatform', '$ionicSideMenuDelegate', 'IntroSettings',
-    function($scope, $timeout, $rootScope,Weather, Geo,Flickr,$ionicModal,$ionicPlatform,$ionicSideMenuDelegate,IntroSettings) {
+        $cordovaSplashscreen.hide();
+
         $ionicSideMenuDelegate.canDragContent(false);
         var _this = this;
-        IntroSettings.delete();
         $scope.activeBgImageIndex = 0;
 
         this.getBackgroundImage = function(lat, lng, locString) {
@@ -92,10 +94,7 @@ appCtrl.controller('HomeCtrl', ['$scope', '$timeout', '$rootScope','Weather','Ge
                 navigator.notification.alert('Unable to get current location ');
             });
         };
-
         $scope.refreshData();
-
-
     }]);
 appCtrl.controller('FindUsCtrl', ['$scope', '$ionicLoading', '$ionicActionSheet', '$timeout', '$ionicModal', '$ionicNavBarDelegate', '$location', '$ionicTabsDelegate',
     function($scope, $ionicLoading, $ionicActionSheet, $timeout, $ionicModal, $ionicNavBarDelegate,$location,$ionicTabsDelegate){
@@ -179,7 +178,6 @@ appCtrl.controller('FindUsCtrl', ['$scope', '$ionicLoading', '$ionicActionSheet'
             $scope.mapCanvas = true; // now show the map
             $scope.close = true;
             $scope.stepByStep = true;
-
         }
         $scope.chooseDestination = function(end){ // set destinations
             if($scope.destination !== end){
@@ -193,7 +191,7 @@ appCtrl.controller('FindUsCtrl', ['$scope', '$ionicLoading', '$ionicActionSheet'
         $scope.getDirection = function () {
             mapDisplayCtrl();
             $scope.showLoading();
-            /*set the controls to the bottom of the map*/
+             /*set the controls to the bottom of the map*/
             var control = document.getElementById("control"),
                 map,
                 directionsDisplay,
@@ -238,9 +236,7 @@ appCtrl.controller('FindUsCtrl', ['$scope', '$ionicLoading', '$ionicActionSheet'
                 if (navigator.geolocation){
                     $scope.locationId = navigator.geolocation.watchPosition(function (position) {
                         var pos = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
-                        $scope.$apply(function (){
-                            $scope.userLocation= pos;
-                        });
+                        $scope.userLocation= pos;
                         $scope.setDirection("DRIVING");
 
                         // use reverse geocoding to find the users human readable address
@@ -255,9 +251,9 @@ appCtrl.controller('FindUsCtrl', ['$scope', '$ionicLoading', '$ionicActionSheet'
                                 } else {
                                     function error () {
                                         if (status === "OVER_QUERY_LIMIT"){
-                                            var errorMessage = "Error. Try again in 5 mins"
-                                        } else {errorMessage = "Error due to: " + status}
-                                        navigator.notification.alert(errorMessage, null, "Error!");
+                                            var errorMessage = "Try again in 5 mins"
+                                        } else {errorMessage = "Something went wrong"}
+                                        navigator.notification.alert(errorMessage, null, "Oops!");
                                         $scope.hideLoading();
                                     }
                                     error()
@@ -317,8 +313,6 @@ appCtrl.controller('FindUsCtrl', ['$scope', '$ionicLoading', '$ionicActionSheet'
                 // Retrieve the start and end locations and create a DirectionsRequest
                 directionService.route(request, function(response, status){
                     if (status == google.maps.DirectionsStatus.OK){
-                        var warnings = document.getElementById ("warnings_panel");
-                        warnings.innerHTML = '<b>' + response.routes[0].warnings + '</b>';
                         directionsDisplay.setDirections(response);
                         //showSteps(response); // !! I found that this calling this function here saves the markers permanently.
                     }
@@ -326,364 +320,6 @@ appCtrl.controller('FindUsCtrl', ['$scope', '$ionicLoading', '$ionicActionSheet'
 
                 directionsDisplay.setPanel(document.getElementById("directions-panel")); //set the step by step directions on to a div
             }
-
-            // watch if the mode has changed
-            $scope.$watch('selectedOption', function (newValue, oldValue) { $scope.setDirection(); });
-
-            function showSteps (directionResult){
-                // For each step, place a marker, and add the text to the marker's
-                // info window. Also attach the marker to an array so we
-                // can keep track of it and remove it when calculating new
-                // routes.
-                var myRoute = directionResult.routes[0].legs[0];
-
-                for (var i = 0; i < myRoute.steps.length; i++) {
-                    var marker = new google.maps.Marker ({
-                        position: myRoute.steps[i].start_location,
-                        map: map
-                    });
-                    attachInstructionText(marker, myRoute.steps[i].instructions);
-                    markerArray[i] = marker;
-                }
-            }
-
-            function attachInstructionText(marker, text){
-                $scope.listner2 = google.maps.event.addListener
-                (marker, 'click', function(){
-                    $scope.stepDisplay.setContent(text);
-                    $scope.stepDisplay.open(map, marker);
-                });
-            }
-
-            function computeTotalDistance (result) {
-                var total = 0;
-                var mydist = result.routes[0];
-                for (var i = 0; i < mydist.legs.length; i++) {
-                    total += mydist.legs[0].distance.value;
-                };
-                total = total/1000;
-                $scope.$apply(function (){
-                    $scope.totalkm = Math.round(total)+"km";
-                });
-            }
-            $scope.domListener2 = google.maps.event.addDomListener(window, 'load', initialize());
-
-        };
-        $scope.stopWatching = function (){
-            navigator.geolocation.clearWatch($scope.locationId)
-        };
-        // Sets the map on all markers in the array.
-        function setAllMap (map) {
-            for (var i = 0; i < markerArray.length; i++){
-                markerArray[i].setMap(map);
-            }
-        }
-        // Removes the markers from the map, but keeps them in the array.
-        function clearMarkers() {
-            setAllMap(null);
-        }
-        $scope.deleteMarkers = function  (){
-            clearMarkers();
-            markerArray = [];
-        };
-
-        // handleNoGeolocation Error
-        function handleNoGeolocation(errorFlag) {
-            var content;
-            if (errorFlag) {
-                content = 'Error: The Geolocation service failed.';
-            } else {
-                content = 'Error: Your browser doesn\'t support geolocation.';
-            }
-
-            var options = {
-                map: map,
-                position: new google.maps.LatLng(60, 105),
-                content: content
-            };
-
-            var infowindow = new google.maps.InfoWindow(options);
-            map.setCenter(options.position);
-        }
-
-        function iosLoading (){
-            $scope.showLoading = function () {
-                steroids.view.displayLoading();
-            };
-            $scope.hideLoading = function(){
-                steroids.view.removeLoading();
-            }
-        }
-        function othersLoading(){
-            $scope.showLoading = function () {
-                $scope.show = $ionicLoading.show({
-                    content: 'Getting current location...',
-                    showBackdrop: false
-                })
-            };
-            $scope.hideLoading = function(){
-                $ionicLoading.hide();
-            }
-        }
-        ionic.Platform.ready(function(){
-            var device = ionic.Platform.device()
-            if (device.platform === "iOS"){
-                iosLoading()
-            } else {
-                othersLoading()
-            }
-        })
-        /*end of code for map/directions*/
-        $scope.$on('$destroy', function(){
-            $scope.stopWatching();
-            google.maps.event.removeListener($scope.listner1)
-            google.maps.event.removeListener($scope.listner2)
-            google.maps.event.removeListener($scope.domListener1)
-            google.maps.event.removeListener($scope.domListener2)
-
-        })
-
-        /*Activities model*/
-        $scope.activities = [
-            {day: 'Friday', title: 'Details Bible study and discusion of the Word of God.', time: '6:30pm - 8:30pm', venue: 'Beston Girls Guide, Nottingham, NG9 1AE'},
-            {day: 'Saturday', title: 'Ministry Meetings ', time: '11:00am - 1:00pm', venue: 'Beston Girls Guide, Nottingham, NG9 1AE'},
-            {day: 'Sunday', title: 'Worship ', time: '5:00pm - 7:30pm', venue: '25 Forster Avenue, Nottingham, NG9 1GL'}
-        ];
-    }
-]);
-
-appCtrl.controller('FindUsCtrl2', ['$scope', '$ionicLoading', '$ionicActionSheet', '$timeout', '$ionicModal', '$ionicNavBarDelegate', '$location', '$ionicTabsDelegate',
-    function($scope, $ionicLoading, $ionicActionSheet, $timeout, $ionicModal, $ionicNavBarDelegate,$location,$ionicTabsDelegate){
-        /*Code for email*/
-        $scope.createEmail = function (){
-            $location.path('/app/send_email')
-        };
-        /*end of code for email*/
-        $scope.setNavTitle = function(title) {
-            $ionicNavBarDelegate.setTitle(title);
-        };
-        $scope.storeTab = function(tab_number){
-
-            // Needed to switch the view when clicking on a tab
-            $ionicTabsDelegate.select(tab_number);
-
-            //Set the Nav bar titile
-            if(tab_number == 0){
-                $scope.setNavTitle("Activities")
-            } else if(tab_number == 2) {
-                $scope.showEndChoices();
-                $scope.setNavTitle("Directions")
-            }
-
-        };
-        /*Code for map/directions*/
-        $scope.mapCanvas = true; //for the map view
-        $scope.controls = false; //for the controls view
-        $scope.close = false;
-        $scope.stepByStep = false;
-        $scope.hideSteps = false;
-        $scope.closeMap = function(){ //for closing the map view
-            $scope.mapCanvas = true; //for the map view
-            $scope.close = false;
-            $scope.stepByStep = false;
-            $scope.hideSteps = false;
-            $scope.controls = false;
-        };
-        $scope.destinationOptions = { // the various destination options for Fridays saturdays and sundays
-            friAndSat:"Ng9 1ae",
-            sunday: "NG9 1GL"
-        };
-
-        //render step-by-step directions
-        $scope.showDirections = function(){
-            $scope.mapCanvas = false; //for the map view
-            $scope.stepByStep = false;
-            $scope.hideSteps = true;
-        };
-        $scope.hideDirections = function(){
-            $scope.mapCanvas = true; //for the map view
-            $scope.hideSteps = false;
-            $scope.stepByStep = true;
-        };
-
-        $scope.showEndChoices = function() { // the modal for choosing destination
-            // Show the action sheet
-            var actionSheet = $ionicActionSheet.show({
-                buttons: [
-                    { text: 'Fridays and Saturdays' },
-                    { text: 'Sundays' }
-                ],
-                titleText: 'Choose a destination',
-                cancelText: 'Cancel',
-                buttonClicked: function(index) {
-                    if(index === 0){
-
-                        $scope.close = true;
-                        $scope.chooseDestination($scope.destinationOptions.friAndSat);
-                    }else if(index === 1){
-
-                        $scope.close = true;
-                        $scope.chooseDestination($scope.destinationOptions.sunday);
-                    }
-                    return true
-                }
-            });
-        };
-
-        function mapDisplayCtrl (){
-            $scope.mapCanvas = true; // now show the map
-            $scope.close = true;
-            $scope.stepByStep = true;
-
-        }
-        $scope.chooseDestination = function(end){ // set destinations
-            if($scope.destination !== end){
-                $scope.end = end
-                $scope.getDirection()
-            } else {
-                mapDisplayCtrl()// now show the map
-            }
-        };
-        var markerArray = [];
-        $scope.getDirection = function () {
-            mapDisplayCtrl();
-            $scope.showLoading();
-            /*set the controls to the bottom of the map*/
-            var control = document.getElementById("control"),
-                map,
-                directionsDisplay,
-                directionService;
-            function initialize() {
-                $scope.userLocation = "";
-                //instantiate Directions service
-                directionService = new google.maps.DirectionsService();
-
-                /*Create a map and center it on Nottingham*/
-                var nottingham = new google.maps.LatLng(-34.397, 150.644),
-                    mapOptions = {
-                        center: nottingham,
-                        zoom: 16,
-                        panControl: false,
-                        zoomControl: false,
-                        mapTypeControl: false,
-                        streetViewControl: false
-                    },
-                    geocoder = new google.maps.Geocoder();
-                map = new google.maps.Map(document.getElementById("map-canvas"), mapOptions);
-
-                directionsDisplay = new google.maps.DirectionsRenderer({
-                    map: map,
-                    draggable: true
-                });
-
-                directionsDisplay.setMap(map); // set the map and bind any changes
-                // Stop the side bar from dragging when mousedown/tapdown on the map
-                $scope.domListener1 = google.maps.event.addDomListener(document.getElementById('map-canvas'), 'mousedown', function (e) {
-                    e.preventDefault();
-                    return false;
-                });
-                $scope.map = map;
-                /*place the controls*/
-                control.style.display = "inline-block";
-                map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(control);
-                $scope.stepDisplay = new google.maps.InfoWindow();
-
-                // Try HTML5 Geolocation to get user's location.
-                // first find the users location
-                if (navigator.geolocation){
-                    $scope.locationId = navigator.geolocation.watchPosition(function (position) {
-                        var pos = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
-                        $scope.$apply(function (){
-                            $scope.userLocation= pos;
-                        });
-                        $scope.setDirection("DRIVING");
-
-                        // use reverse geocoding to find the users human readable address
-                        geocoder.geocode({latLng: pos},
-                            function  (result, status) {
-                                if (status === google.maps.GeocoderStatus.OK){
-                                    if (result[1]){
-                                        map.setZoom(18);
-                                        map.setCenter(pos);
-                                        $scope.hideLoading()
-                                    }
-                                } else {
-                                    function error () {
-                                        if (status === "OVER_QUERY_LIMIT"){
-                                            var errorMessage = "Error. Try again in 5 mins"
-                                        } else {errorMessage = "Error due to: " + status}
-                                        navigator.notification.alert(errorMessage, null, "Error!");
-                                        $scope.hideLoading();
-                                    }
-                                    error()
-                                    $scope.closeMap();
-                                }
-                            }); //End of reverse coding
-
-                    }, function(){
-                        handleNoGeolocation(true);
-                    });
-                } else {handleNoGeolocation(false)}//if browser does not support geolocation
-                //end of geocoder
-
-                $scope.listner1 = google.maps.event.addListener(directionsDisplay, 'directions_changed', function(){
-                    $scope.deleteMarkers ();
-                    $scope.controls = true;
-                    showSteps(directionsDisplay.directions);
-                    try{
-                        if (directionsDisplay.directions.routes[0].legs[0]) {
-                            $scope.$apply(function () {
-                                $scope.userLocation = directionsDisplay.directions.routes[0].legs[0].start_address;
-                            });
-                        }
-                    } catch (e) { }
-                    computeTotalDistance(directionsDisplay.getDirections());
-                });
-            }
-
-            $scope.setDirection = function (transMod) {
-                // First, remove any existing markers from the map.
-                $scope.deleteMarkers();// First, clear out any existing markerArray from previous calculations.
-                $scope.destination = $scope.end
-                var start = $scope.userLocation,
-                    selectedMode = transMod || 'DRIVING',
-                    request = {
-                        origin: start,
-                        destination: $scope.destination,
-                        travelMode: selectedMode,
-                        provideRouteAlternatives: true,
-                        unitSystem: google.maps.UnitSystem.METRIC,
-                        optimizeWaypoints: true
-                    };
-                if (selectedMode === 'TRANSIT') {
-                    request.transitOptions = {
-                        departureTime: new Date()
-                    };
-                }
-
-                /*resize the map*/
-                $scope.ele = document.querySelector("#map-canvas")
-                $scope.$watch('ele', function(){
-                    window.setTimeout(function(){
-                        google.maps.event.trigger(map, 'resize');
-                    }, 100)
-                })
-
-                // Retrieve the start and end locations and create a DirectionsRequest
-                directionService.route(request, function(response, status){
-                    if (status == google.maps.DirectionsStatus.OK){
-                        var warnings = document.getElementById ("warnings_panel");
-                        warnings.innerHTML = '<b>' + response.routes[0].warnings + '</b>';
-                        directionsDisplay.setDirections(response);
-                        //showSteps(response); // !! I found that this calling this function here saves the markers permanently.
-                    }
-                });
-
-                directionsDisplay.setPanel(document.getElementById("directions-panel")); //set the step by step directions on to a div
-            }
-
-            // watch if the mode has changed
-            $scope.$watch('selectedOption', function (newValue, oldValue) { $scope.setDirection(); });
 
             function showSteps (directionResult){
                 // For each step, place a marker, and add the text to the marker's
@@ -751,42 +387,24 @@ appCtrl.controller('FindUsCtrl2', ['$scope', '$ionicLoading', '$ionicActionSheet
             }
 
             var options = {
-                map: map,
+                map: $scope.map,
                 position: new google.maps.LatLng(60, 105),
                 content: content
             };
 
             var infowindow = new google.maps.InfoWindow(options);
-            map.setCenter(options.position);
+            $scope.map.setCenter(options.position);
         }
 
-        function iosLoading (){
-            $scope.showLoading = function () {
-                steroids.view.displayLoading();
-            };
-            $scope.hideLoading = function(){
-                steroids.view.removeLoading();
-            }
+        $scope.showLoading = function () {
+            $scope.show = $ionicLoading.show({
+                content: 'Getting current location...',
+                showBackdrop: false
+            })
+        };
+        $scope.hideLoading = function(){
+            $ionicLoading.hide();
         }
-        function othersLoading(){
-            $scope.showLoading = function () {
-                $scope.show = $ionicLoading.show({
-                    content: 'Getting current location...',
-                    showBackdrop: false
-                })
-            };
-            $scope.hideLoading = function(){
-                $ionicLoading.hide();
-            }
-        }
-        ionic.Platform.ready(function(){
-            var device = ionic.Platform.device()
-            if (device.platform === "iOS"){
-                iosLoading()
-            } else {
-                othersLoading()
-            }
-        })
         /*end of code for map/directions*/
         $scope.$on('$destroy', function(){
             $scope.stopWatching();
@@ -895,7 +513,6 @@ appCtrl.controller('Contact_Message_Ctrl', ['$http','$scope', '$stateParams', 'C
             text: "Todo"
         };
     }]);
-
 appCtrl.controller('WordForTodayCtrl', ['$scope', 'HomeCards', '$location', '$timeout',
     function($scope, HomeCards, $location, $timeout) {
         //$scope.cards = { title: 'Swipe down to clear the card', image: 'img/pic.png' }
@@ -928,7 +545,6 @@ appCtrl.controller('WordForTodayCtrl', ['$scope', 'HomeCards', '$location', '$ti
         })
 
     }]);
-
 appCtrl.controller("PhotoGalCtrl", ["$rootScope", "$scope", "$timeout", "$interval", "$stateParams",
     "$ionicGesture", "$ionicNavBarDelegate", "MyService",
     function($rootScope, $scope, $timeout, $interval, $stateParams, $ionicGesture, $ionicNavBarDelegate, MyService){
@@ -997,8 +613,7 @@ appCtrl.controller("PhotoGalCtrl", ["$rootScope", "$scope", "$timeout", "$interv
             $scope._Index = index;
         };
 
-    }])
-
+    }]);
 appCtrl.controller('PodcastsListsCtrl', ['$scope', 'PodLists', 'AWSService', 'MyService', '$timeout', '$ionicLoading', '$filter', 'PodService', 'Player',
     function($scope, PodLists, AWSService, MyService, $timeout, $ionicLoading, $filter, PodService, Player){
         /*set the funcion for showing and hiding loading screen*/
@@ -1034,15 +649,17 @@ appCtrl.controller('PodcastsListsCtrl', ['$scope', 'PodLists', 'AWSService', 'My
                     $scope.$broadcast('scroll.refreshComplete');
                 });
         };
-
+        var timer_mess
         if(!sessionStorage.podsArray){
-            $timeout(function(){
+            timer_mess = $timeout(function(){
                 $scope.getMessages();
+                $timeout.cancel(timer_mess)
             })
         } else if(sessionStorage.podsArray){
             if(angular.fromJson(sessionStorage.podsArray).length < 1){
-                $timeout(function(){
+                timer_mess = $timeout(function(){
                     $scope.getMessages();
+                    $timeout.cancel(timer_mess)
                 })
             } else {
                 podcasts = angular.fromJson(sessionStorage.podsArray)
@@ -1064,7 +681,6 @@ appCtrl.controller('PodcastsListsCtrl', ['$scope', 'PodLists', 'AWSService', 'My
         };
 
     }]);
-
 appCtrl.controller('PodcastsDetailCtrl', ['$scope', '$cacheFactory', '$stateParams', '$filter', 'MyService', '$timeout', '$ionicLoading', 'PodService', 'Player',
     function($scope, $cacheFactory, $stateParams, $filter, MyService, $timeout, $ionicLoading, PodService, Player){
         /*set the defaults*/
@@ -1087,9 +703,11 @@ appCtrl.controller('PodcastsDetailCtrl', ['$scope', '$cacheFactory', '$statePara
         $scope.showLoading();
 
         var bucket = 'hci-media';
-        /*filter a particular object based on the ETag, then get the Key and call get object metadata. Then model the url for audio*/
-        MyService.listObjects(bucket, 'podcasts/', 'podcasts/').then(function(messages){
-            function getMessage (){
+        var eTag = $stateParams.todoId;
+        console.log("etag is ", eTag)
+        $scope.getMessage = function(){
+            /*filter a particular object based on the ETag, then get the Key and call get object metadata. Then model the url for audio*/
+            MyService.listObjects(bucket, 'podcasts/', 'podcasts/').then(function(messages){
                 var messageObj = $filter('filter')(messages, {ETag: $stateParams.todoId})[0],
                     key = messageObj.Key,
                     params = {
@@ -1097,13 +715,24 @@ appCtrl.controller('PodcastsDetailCtrl', ['$scope', '$cacheFactory', '$statePara
                         Key: key
                     };
                 MyService.getObjHead(params).then(function(obj){
-                   $scope.podcast = obj;
+                    $scope.podcast = obj;
+                    sessionStorage.setItem(eTag, angular.toJson($scope.podcast));
                 });
                 $scope.messageSrc = 'https://s3-eu-west-1.amazonaws.com/'+bucket+'/'+key;
                 $scope.hide();
-            }
-            var timer = $timeout(getMessage)
-            //Clean up the timer before we kill this controller
-            $scope.$on('$destroy', function() { if (timer) { $timeout.cancel(timer); } });
-        });
-    }])
+                //Clean up the timer before we kill this controller
+            });
+        };
+        var timer_mess
+        if(!sessionStorage.getItem(eTag)){
+            timer_mess = $timeout(function(){
+                $scope.getMessage();
+                $timeout.cancel(timer_mess)
+            })
+        } else{
+            var podcast = angular.fromJson(sessionStorage.getItem(eTag))
+            $scope.podcast = podcast;
+            $scope.hide();
+        }
+        $scope.$on('$destroy', function() { if (timer_mess) { $timeout.cancel(timer_mess); } });
+    }]);

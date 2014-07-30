@@ -28,10 +28,7 @@
             }
         }
     }];
-
     var appServ = angular.module('hciApp-services', ['restangular', 'ngResource']);
-
-
     appServ.factory('PodService', ['Restangular',function(Restangular) {
 
         return Restangular.withConfig(function(RestangularConfigurer) {
@@ -44,31 +41,15 @@
 
         });
     }]);
-
-    /*create the audio service*/
-    appServ.factory('PodcastAudio', ['$document', '$q', function($document, $q){
-        return {
-            audio: function(file){
-                var d = $q.defer();
-                var audio = new Audio(file);
-                d.resolve(audio);
-                return d.promise
-            }
-        };
-    }]);
-
-    appServ.factory('Player', ['$rootScope', '$ionicLoading', 'PodcastAudio', function($rootScope, $ionicLoading, PodcastAudio){
-
+    appServ.factory('Player', ['$rootScope', '$ionicLoading', function($rootScope, $ionicLoading){
         function onError(error){
             console.log(error.message);
         }
-
         function onConfirmRetry(button) {
             if (button == 1) {
                 html5audio.play(html5audio.mediaSrc, html5audio.messTitle);
             } else html5audio.stop();
         }
-
         function pad2(number) {
             return (number < 10 ? '0' : '') + number
         }
@@ -82,7 +63,6 @@
         /*the player object*/
         var myaudio = new Audio(),
             readyStateInterval = null,
-
             html5audio = {
                 playButton: true,
                 stopButton: false,
@@ -94,8 +74,7 @@
                 isPlaying: false,
                 mediaSrc: null,
                 messTitle: null,
-                play: function(url, title)
-                {
+                play: function(url, title){
                     html5audio.messTitle = title;
                     html5audio.mediaSrc = myaudio.src = url;
                     myaudio.play();
@@ -103,7 +82,6 @@
 
                     readyStateInterval = setInterval(function(){
                         if (myaudio.readyState <= 2) {
-                            showLoading();//show loading png
                             html5audio.playButton = false;//hide play button
                             html5audio.textPosition = '';//pretty obvious! progress!!!
                         }
@@ -183,12 +161,9 @@
                 update: function(position){
                     myaudio.currentTime = position;
                 }
-
-
             };
         return html5audio;
     }]);
-
     appServ.factory('Photos', [ function(){
         var bCheckEnabled = true;
         var bFinishCheck = false;
@@ -230,25 +205,20 @@
         }
         return photos
     }]);
-
     appServ.constant('DEFAULT_SETTINGS', {
         'showIntroPage': 'yes'
-    })
-
-    appServ.factory('IntroSettings', function($rootScope,$state, DEFAULT_SETTINGS) {
+    });
+    appServ.factory('IntroSettings', ['$rootScope','$state','DEFAULT_SETTINGS', function($rootScope,$state, DEFAULT_SETTINGS) {
         var _settings = {};
         try {
             _settings = JSON.parse(window.localStorage['settings']);
         } catch(e) {
         }
-
         // Just in case we have new settings that need to be saved
         _settings = angular.extend({}, DEFAULT_SETTINGS, _settings);
-
         if(!_settings) {
             window.localStorage['settings'] = JSON.stringify(_settings);
         }
-
         var obj = {
             getSettings: function() {
                 console.log("getSettings")
@@ -269,19 +239,16 @@
                 _settings[k] = v;
                 this.save();
             },
-
-            delete: function(){
+            delete_settings: function(){
                 window.localStorage['settings'] = "";
             },
-
-            getTempUnits: function() {
+            checkIntroPage: function() {
                 return _settings['showIntroPage'];
             }
         }
         return obj;
-    });
-
-    appServ.factory('Geo', function($q) {
+    }]);
+    appServ.factory('Geo', ['$q',function($q) {
         return {
             reverseGeocode: function(lat, lng) {
                 var q = $q.defer();
@@ -334,9 +301,8 @@
                 return q.promise;
             }
         };
-    })
-
-    appServ.factory('Flickr', function($q, $resource, FLICKR_API_KEY) {
+    }]);
+    appServ.factory('Flickr', ['$q', '$resource','FLICKR_API_KEY',function($q,$resource,FLICKR_API_KEY) {
         var baseUrl = 'http://api.flickr.com/services/rest/'
 
 
@@ -372,9 +338,8 @@
                 return q.promise;
             }
         };
-    });
+    }]);
     appServ.factory('Weather', forecastioWeather);
-
     appServ.factory('PodLists', ['MyService','$timeout','$rootScope','$cacheFactory','$q','$stateParams',
         function(MyService, $timeout, $rootScope, $cacheFactory,$q,$stateParams){
         var pod_Cache = $cacheFactory('podCache'),
@@ -495,8 +460,16 @@
                 if(marker) params['Marker'] = marker;
                 service.currentUser().then(function(obj){
                     obj.listObjects(params, function(err, data){
-                        var content = data.Contents;
-                        d.resolve(content);
+                        try{
+                            var content = data.Contents;
+                            if (content == null){
+                                return;
+                            }
+                            d.resolve(content);
+                            console.log("content of listObjects ", content);
+                        } catch (e){
+                            console.log("some error occured ", e.message)
+                        }
                     }, function(error){
                         d.reject("Unable to get content");
                         navigator.notification.alert('Unable to messages', null, "Error");
@@ -518,7 +491,6 @@
         };
         return service
     }]);
-
     appServ.provider('AWSService', [function() {
         var self = this;
         AWS.config.region = 'eu-west-1';
@@ -541,7 +513,7 @@
                 awsInstance: function(){
                     var s3Obj = awsS3Instance.get("awsS3Instance");
                     if(!s3Obj){
-                        var type = $cordovaNetwork.isOnline();
+                        var type =$cordovaNetwork.isOnline();
                         if (type) {
                             var s3Obj = AWS.config.update(params);
                             awsS3Instance.put("awsS3Instance", s3Obj)
@@ -555,7 +527,6 @@
             }
         }
     }]);
-
     appServ.factory('ContactMessages', ['$firebase', 'FIREBASE_URL', function($firebase, FIREBASE_URL){
         var ref = new Firebase(FIREBASE_URL + 'contactMessage/');
         var messages = $firebase(ref);
@@ -572,8 +543,7 @@
             }
         };
         return Message;
-    }])
-
+    }]);
     appServ.factory('HomeCards', ['$q', '$http', 'KIMONOLABS', function($q, $http, KIMONOLABS) {
         var baseUrl = 'https://www.kimonolabs.com/api/9qdixyrk?callback=JSON_CALLBACK'
 
@@ -591,7 +561,6 @@
                 console.log("yes")
             }
         }
-
         function Error( response ) {
             if (
                 ! angular.isObject( response.data ) ||
@@ -602,12 +571,10 @@
             // Otherwise, use expected error message.
             return( $q.reject( response.data.message ) );
         }
-
         function Success( response ) {
             sessionStorage.word42day = angular.toJson(response.data)
             return( response.data );
         }
 
     }]);
-
 })();

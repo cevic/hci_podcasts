@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf8">
       <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width">
-    <title>My Steroids App</title>
+    <title>My HCI App</title>
 
     <link rel="stylesheet" href="/vendor/ionic/css/ionic.css" />
     <link rel="stylesheet" href="/vendor/ionic/css/ionicons.min.css" />
@@ -28,8 +28,6 @@
     <script src="/components/lodash/dist/lodash.min.js"></script>
     <script src="/components/restangular/dist/restangular.min.js"></script>
     <script src="/vendor/ng-cordova/dist/ng-cordova.js"></script>
-      <!-- cordova.js is served from localhost to ensure the correct version -->
-      <script src="cordova.js"></script>
       <!--other js files-->
       <script src="/js/services.js"></script>
       <script src="/js/filters.js"></script>
@@ -37,6 +35,8 @@
       <script src="/js/controllers.js"></script>
       <script src="/js/app.js"></script>
 
+      <!-- cordova.js is served from localhost to ensure the correct version -->
+      <script src="cordova.js"></script>
       <script src="/javascripts/onerror.js"></script>
     <script src="/javascripts/console.log.js"></script>
 
@@ -45,7 +45,7 @@
 
 
   </head>
-  <body ng-app="hciApp">
+  <body>
       <ion-nav-view></ion-nav-view>
       <script type="text/ng-template" id="menu.html"></script>
       <script type="text/ng-template" id="templates/intro.html">
@@ -167,7 +167,6 @@
       </script>
       <script type="text/ng-template" id="templates/podcastsLists.html">
           <ion-view title="Message Lists" class="dark">
-
               <ion-nav-buttons side="left">
                   <button menu-toggle="left" class="button button-icon icon ion-navicon"></button>
               </ion-nav-buttons>
